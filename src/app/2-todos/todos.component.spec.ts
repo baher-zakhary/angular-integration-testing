@@ -1,5 +1,5 @@
 /* tslint:disable:no-unused-variable */
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { async, ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { DebugElement } from '@angular/core';
 
@@ -22,11 +22,11 @@ describe('TodosComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ TodosComponent ],
-      imports: [ HttpModule ],
-      providers: [ TodoService ]
+      declarations: [TodosComponent],
+      imports: [HttpModule],
+      providers: [TodoService]
     })
-    .compileComponents();
+      .compileComponents();
   }));
 
   beforeEach(() => {
@@ -38,13 +38,35 @@ describe('TodosComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should load todos from the server', () => {
+  it('should load todos from the server', async () => {
     let service = TestBed.get(TodoService); // gets only the dependencies registered in app.module.ts
     // fixture.debugElement.injector.get(TodoService); // used to get dependencies registered in the component
 
-    spyOn(service, 'getTodos').and.returnValue(from([[1,2,3]]));
+    // spyOn(service, 'getTodos').and.returnValue(from([[1,2,3]]));
+    spyOn(service, 'getTodosPromise').and.returnValue(Promise.resolve([1, 2, 3]));
+
     fixture.detectChanges();
 
-    expect(component.todos.length).toBe(3);
+
+    // expect(component.todos.length).toBe(3);
+    // console.log('EXPECT was called'); // expect is called before promise is resolved and our test fails
+
+    fixture.whenStable().then(() => { // solution is to use when stable which resolves when all async operations have completed
+      expect(component.todos.length).toBe(3);
+    });
   });
+
+
+  // another solution of promise resolution problem using fakeAsync & tick()
+  it('should load todos from the server ANOTHER SOLUTION', fakeAsync (() => {
+    let service = TestBed.get(TodoService);
+
+    spyOn(service, 'getTodosPromise').and.returnValue(Promise.resolve([1, 2, 3]));
+
+    fixture.detectChanges();
+
+    tick();
+    expect(component.todos.length).toBe(3);
+
+  }));
 });
